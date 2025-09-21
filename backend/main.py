@@ -4,13 +4,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
+from stateless_webhook import router as stateless_router
 import uvicorn
-
 import models, schemas, crud, auth, database
 from database import SessionLocal, engine
-from activitywatch_client import ActivityWatchClient
+from my_activitywatch_client import ActivityWatchClient
 from productivity_calculator import ProductivityCalculator
 from realistic_hours_calculator import RealisticHoursCalculator
+from developer_discovery import DeveloperDiscovery
+from models import DiscoveredDeveloper, ActivityRecord
+from concurrent.futures import ThreadPoolExecutor
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -24,6 +27,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(stateless_router, prefix="/api/v1", tags=["stateless-webhook"])
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 

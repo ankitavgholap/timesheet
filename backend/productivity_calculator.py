@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, List
 
 import models
-from activitywatch_client import ActivityWatchClient
+from my_activitywatch_client import ActivityWatchClient
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 

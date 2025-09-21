@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 import models
-from activitywatch_client import ActivityWatchClient
+from my_activitywatch_client import ActivityWatchClient
 
 class RealisticHoursCalculator:
     def __init__(self):

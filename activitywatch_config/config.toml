@@ -1,0 +1,61 @@
+# ActivityWatch Configuration for Team Timesheet System
+# Place this file in your ActivityWatch config directory
+
+# For Windows: %APPDATA%\activitywatch\aw-server\config.toml
+# For Linux: ~/.config/activitywatch/aw-server/config.toml
+# For macOS: ~/Library/Application Support/activitywatch/aw-server/config.toml
+
+[server]
+host = "127.0.0.1"
+port = 5600
+
+# Custom sync configuration for team timesheet
+[sync]
+enabled = true
+server_url = "https://your-timesheet-server.com/api/v1/activitywatch/sync"
+developer_id = "your-developer-id"
+api_token = "your-api-token"
+sync_interval = 1800  # 30 minutes in seconds
+auto_sync = true
+
+# Data export configuration
+[export]
+# Automatically export data to our server
+webhook_url = "https://your-timesheet-server.com/api/v1/activitywatch/webhook"
+webhook_enabled = true
+webhook_interval = 1800  # 30 minutes
+developer_id = "your-developer-id"
+api_token = "your-api-token"
+
+# Include these buckets in sync
+include_buckets = [
+    "aw-watcher-window",
+    "aw-watcher-web-chrome",
+    "aw-watcher-web-firefox",
+    "aw-watcher-afk"
+]
+
+# Headers to include in webhook requests
+[export.headers]
+"Developer-ID" = "your-developer-id"
+"Authorization" = "Bearer your-api-token"
+"Content-Type" = "application/json"
+
+# Privacy settings - what data to include
+[privacy]
+# Include window titles (needed for project detection)
+include_window_titles = true
+# Include URLs (for web tracking)
+include_urls = true
+# Exclude sensitive patterns
+exclude_patterns = [
+    "*password*",
+    "*login*",
+    "*private*",
+    "*confidential*"
+]
+
+# Logging configuration
+[logging]
+level = "INFO"
+file = "aw-server.log"
