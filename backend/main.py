@@ -35,7 +35,7 @@ app.include_router(stateless_router, prefix="/api/v1", tags=["stateless-webhook"
 from simple_multi_dev_api import router as multi_dev_router
 app.include_router(multi_dev_router)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
