@@ -14,6 +14,8 @@ from realistic_hours_calculator import RealisticHoursCalculator
 from developer_discovery import DeveloperDiscovery
 from models import DiscoveredDeveloper, ActivityRecord
 from concurrent.futures import ThreadPoolExecutor
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -28,6 +30,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(stateless_router, prefix="/api/v1", tags=["stateless-webhook"])
+
+# Add multi-developer support
+from simple_multi_dev_api import router as multi_dev_router
+app.include_router(multi_dev_router)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -83,6 +92,11 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
 @app.get("/users/me", response_model=schemas.User)
 def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+@app.get("/activity-tracker")
+async def get_activity_tracker():
+    return FileResponse("activity_tracker.html")
+
 
 @app.get("/activity-data")
 def get_activity_data(
