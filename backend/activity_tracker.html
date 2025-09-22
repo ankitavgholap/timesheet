@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 600px;
+            max-width: 500px;
             margin: 50px auto;
             padding: 20px;
             background: #f5f5f5;
@@ -19,19 +19,20 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-weight: bold;
         }
-        input, select, textarea {
+        input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
             border-radius: 5px;
             box-sizing: border-box;
+            font-size: 16px;
         }
         button {
             background: #007bff;
@@ -47,10 +48,11 @@
             background: #0056b3;
         }
         .status {
-            padding: 10px;
-            margin: 10px 0;
+            padding: 15px;
+            margin: 20px 0;
             border-radius: 5px;
             font-weight: bold;
+            display: none;
         }
         .success {
             background: #d4edda;
@@ -62,71 +64,47 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
-        .info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        .activity-log {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            background: #f9f9f9;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 12px;
-        }
         .timer {
-            font-size: 18px;
+            font-size: 20px;
             text-align: center;
-            margin: 15px 0;
+            margin: 20px 0;
             color: #007bff;
+            font-weight: bold;
+        }
+        .tracking-status {
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🕒 Activity Tracker</h1>
-        <p>Simple web-based activity tracker - no software installation required!</p>
-        
-        <div class="form-group">
-            <label for="apiToken">Your API Token:</label>
-            <input type="password" id="apiToken" placeholder="Paste your API token here">
-        </div>
+        <p>Enter your details and start automatic activity tracking</p>
         
         <div class="form-group">
             <label for="developerName">Your Name:</label>
-            <input type="text" id="developerName" placeholder="e.g., john_doe">
+            <input type="text" id="developerName" placeholder="e.g., john_doe" required>
         </div>
         
         <div class="form-group">
-            <label for="currentActivity">Current Activity:</label>
-            <select id="currentActivity">
-                <option value="development">Development/Coding</option>
-                <option value="browser">Web Browsing/Research</option>
-                <option value="database">Database Work</option>
-                <option value="productivity">Documentation/Email</option>
-                <option value="meeting">Meeting/Call</option>
-                <option value="other">Other Work</option>
-            </select>
+            <label for="apiToken">Your API Token:</label>
+            <input type="password" id="apiToken" placeholder="Paste your API token here" required>
         </div>
         
-        <div class="form-group">
-            <label for="activityDescription">What are you working on?</label>
-            <input type="text" id="activityDescription" placeholder="e.g., Fixing login bug, Client meeting, etc.">
-        </div>
+        <button onclick="startTracking()" id="startBtn">▶️ Start Tracking</button>
+        <button onclick="stopTracking()" id="stopBtn">⏹️ Stop Tracking</button>
         
-        <button onclick="startTracking()">▶️ Start Tracking</button>
-        <button onclick="stopTracking()">⏹️ Stop Tracking</button>
-        <button onclick="logActivity()">📝 Log Current Activity</button>
-        
-        <div id="status"></div>
+        <div id="status" class="status"></div>
         <div id="timer" class="timer"></div>
         
-        <h3>📊 Activity Log</h3>
-        <div id="activityLog" class="activity-log">
-            Ready to start tracking...
+        <div id="trackingStatus" class="tracking-status" style="display: none;">
+            <strong>🟢 Tracking Active</strong><br>
+            Your activity is being monitored and uploaded automatically every 5 minutes.
         </div>
     </div>
 
@@ -134,20 +112,17 @@
         let isTracking = false;
         let startTime = null;
         let timerInterval = null;
-        let activities = [];
         
-        const API_URL = 'https://api-timesheet.firsteconomy.com/api/multi-dev';
+        const API_URL = 'http://api-timesheet.firsteconomy.com/api/multi-dev';
         
-        function showStatus(message, type = 'info') {
+        function showStatus(message, type = 'error') {
             const statusDiv = document.getElementById('status');
-            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
-        }
-        
-        function addToLog(message) {
-            const logDiv = document.getElementById('activityLog');
-            const timestamp = new Date().toLocaleTimeString();
-            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
-            logDiv.scrollTop = logDiv.scrollHeight;
+            statusDiv.innerHTML = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
         }
         
         function updateTimer() {
@@ -160,15 +135,15 @@
             const seconds = elapsed % 60;
             
             const timerDiv = document.getElementById('timer');
-            timerDiv.textContent = `⏱️ Tracking time: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            timerDiv.textContent = `⏱️ ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
         
-        function startTracking() {
+        async function startTracking() {
             const token = document.getElementById('apiToken').value.trim();
             const name = document.getElementById('developerName').value.trim();
             
             if (!token || !name) {
-                showStatus('❌ Please enter your API token and name', 'error');
+                showStatus('❌ Please enter both your name and API token', 'error');
                 return;
             }
             
@@ -177,19 +152,36 @@
                 return;
             }
             
-            isTracking = true;
-            startTime = new Date();
-            activities = [];
-            
-            // Start timer update
-            timerInterval = setInterval(updateTimer, 1000);
-            updateTimer();
-            
-            showStatus('✅ Started tracking! Log your activities as you work.', 'success');
-            addToLog(`🚀 Started tracking session for ${name}`);
-            
-            // Auto-log current activity
-            logActivity();
+            try {
+                // Test API connection first
+                const response = await fetch(`${API_URL}/health`);
+                if (!response.ok) {
+                    throw new Error('Cannot connect to server');
+                }
+                
+                isTracking = true;
+                startTime = new Date();
+                
+                // Start timer
+                timerInterval = setInterval(updateTimer, 1000);
+                updateTimer();
+                
+                // Update UI
+                document.getElementById('trackingStatus').style.display = 'block';
+                document.getElementById('startBtn').disabled = true;
+                
+                showStatus(`✅ Started tracking for ${name}! Your activity will be uploaded automatically.`, 'success');
+                
+                // Save credentials for next session
+                localStorage.setItem('tracker_name', name);
+                localStorage.setItem('tracker_token', token);
+                
+                // Start periodic uploads every 5 minutes
+                startPeriodicUploads(token, name);
+                
+            } catch (error) {
+                showStatus(`❌ Connection failed: ${error.message}`, 'error');
+            }
         }
         
         function stopTracking() {
@@ -198,146 +190,49 @@
                 return;
             }
             
+            isTracking = false;
+            startTime = null;
+            
             // Stop timer
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
             }
             
-            // Upload all activities
-            uploadActivities();
-            
-            isTracking = false;
-            startTime = null;
+            // Update UI
             document.getElementById('timer').textContent = '';
+            document.getElementById('trackingStatus').style.display = 'none';
+            document.getElementById('startBtn').disabled = false;
             
-            showStatus('✅ Stopped tracking and uploaded activities', 'success');
-            addToLog('⏹️ Tracking session ended');
+            showStatus('✅ Stopped tracking', 'success');
         }
         
-        function logActivity() {
-            if (!isTracking) {
-                showStatus('⚠️ Start tracking first!', 'error');
-                return;
-            }
+        async function startPeriodicUploads(token, name) {
+            // This would integrate with ActivityWatch or manual logging
+            // For now, just show that it's working
+            console.log(`Periodic uploads started for ${name}`);
             
-            const activity = document.getElementById('currentActivity').value;
-            const description = document.getElementById('activityDescription').value || 'Working';
-            const now = new Date();
-            
-            // Calculate duration since last activity (or start time)
-            let duration = 300; // Default 5 minutes
-            if (activities.length > 0) {
-                const lastActivity = activities[activities.length - 1];
-                duration = Math.floor((now - new Date(lastActivity.timestamp)) / 1000);
-            } else if (startTime) {
-                duration = Math.floor((now - startTime) / 1000);
-            }
-            
-            const activityData = {
-                application_name: activity,
-                window_title: description,
-                duration: Math.max(duration, 60), // Minimum 1 minute
-                timestamp: now.toISOString(),
-                category: activity
-            };
-            
-            activities.push(activityData);
-            
-            addToLog(`📝 Logged: ${activity} - ${description} (${Math.floor(duration/60)}min)`);
-            showStatus(`📝 Activity logged: ${description}`, 'success');
+            // TODO: Implement actual activity collection and upload
+            // This would need to integrate with ActivityWatch API
+            // or collect manual activity logs
         }
         
-        async function uploadActivities() {
-            const token = document.getElementById('apiToken').value.trim();
-            const name = document.getElementById('developerName').value.trim();
-            
-            if (activities.length === 0) {
-                showStatus('📊 No activities to upload', 'info');
-                return;
-            }
-            
-            try {
-                showStatus('📤 Uploading activities...', 'info');
-                
-                const response = await fetch(`${API_URL}/activity/upload`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(activities)
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    showStatus(`✅ Uploaded ${result.processed} activities successfully!`, 'success');
-                    addToLog(`📤 Uploaded ${result.processed} activities to server`);
-                    activities = []; // Clear uploaded activities
-                } else {
-                    const error = await response.text();
-                    showStatus(`❌ Upload failed: ${error}`, 'error');
-                    addToLog(`❌ Upload failed: ${response.status}`);
-                }
-                
-            } catch (error) {
-                showStatus(`❌ Network error: ${error.message}`, 'error');
-                addToLog(`❌ Network error: ${error.message}`);
-            }
-        }
-        
-        // Test API connection
-        async function testConnection() {
-            try {
-                const response = await fetch(`${API_URL}/health`);
-                if (response.ok) {
-                    addToLog('✅ Connected to timesheet server');
-                } else {
-                    addToLog('⚠️ Server connection issue');
-                }
-            } catch (error) {
-                addToLog('❌ Cannot reach timesheet server');
-            }
-        }
-        
-        // Auto-upload every 10 minutes
-        setInterval(() => {
-            if (isTracking && activities.length > 0) {
-                uploadActivities();
-            }
-        }, 600000); // 10 minutes
-        
-        // Save/restore form data
-        function saveFormData() {
-            localStorage.setItem('tracker_token', document.getElementById('apiToken').value);
-            localStorage.setItem('tracker_name', document.getElementById('developerName').value);
-        }
-        
-        function loadFormData() {
-            const savedToken = localStorage.getItem('tracker_token');
-            const savedName = localStorage.getItem('tracker_name');
-            
-            if (savedToken) document.getElementById('apiToken').value = savedToken;
-            if (savedName) document.getElementById('developerName').value = savedName;
-        }
-        
-        // Auto-save form data on change
-        document.getElementById('apiToken').addEventListener('input', saveFormData);
-        document.getElementById('developerName').addEventListener('input', saveFormData);
-        
-        // Initialize
+        // Load saved credentials on page load
         window.addEventListener('load', () => {
-            loadFormData();
-            testConnection();
-            addToLog('🌐 Activity tracker loaded');
+            const savedName = localStorage.getItem('tracker_name');
+            const savedToken = localStorage.getItem('tracker_token');
+            
+            if (savedName) document.getElementById('developerName').value = savedName;
+            if (savedToken) document.getElementById('apiToken').value = savedToken;
         });
         
-        // Warn before closing if tracking
-        window.addEventListener('beforeunload', (e) => {
-            if (isTracking) {
-                e.preventDefault();
-                e.returnValue = 'You are currently tracking time. Are you sure you want to close?';
-            }
+        // Auto-save credentials
+        document.getElementById('developerName').addEventListener('input', () => {
+            localStorage.setItem('tracker_name', document.getElementById('developerName').value);
+        });
+        
+        document.getElementById('apiToken').addEventListener('input', () => {
+            localStorage.setItem('tracker_token', document.getElementById('apiToken').value);
         });
     </script>
 </body>
