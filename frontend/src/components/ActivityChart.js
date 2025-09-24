@@ -8,14 +8,38 @@ const COLORS = [
 ];
 
 function ActivityChart({ data }) {
-  // Prepare data for the pie chart
-  const chartData = data.map((item, index) => ({
-    name: item.application_name,
-    value: item.duration,
-    percentage: item.percentage,
-    category: item.category,
-    color: COLORS[index % COLORS.length]
-  }));
+  // Process raw activity data for the chart
+  const processDataForChart = (rawData) => {
+    if (!rawData || rawData.length === 0) return [];
+    
+    // Group by application
+    const grouped = {};
+    rawData.forEach(item => {
+      const appName = item.application_name || 'Unknown';
+      if (!grouped[appName]) {
+        grouped[appName] = {
+          name: appName,
+          value: 0,
+          category: item.category || 'Other'
+        };
+      }
+      grouped[appName].value += item.duration || 0;
+    });
+
+    // Convert to array and calculate percentages
+    const totalTime = Object.values(grouped).reduce((sum, item) => sum + item.value, 0);
+    
+    return Object.values(grouped)
+      .map((item, index) => ({
+        ...item,
+        percentage: totalTime > 0 ? (item.value / totalTime) * 100 : 0,
+        color: COLORS[index % COLORS.length]
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8); // Top 8 applications
+  };
+
+  const chartData = processDataForChart(data);
 
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);

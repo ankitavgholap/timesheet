@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Registration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .helper-text {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 6px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .auto-info {
+            background: #f8f9ff;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .auto-info strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👨‍💻 Register Developer</h1>
+            <p>Quick setup for activity monitoring</p>
+        </div>
+
+        <div class="auto-info" id="autoInfo" style="display: none;">
+            <strong>Auto-detected:</strong><br>
+            <span id="detectedInfo">Detecting system information...</span>
+        </div>
+
+        <form id="registrationForm">
+            <div class="form-group">
+                <label for="developerName">👤 Your Name</label>
+                <input type="text" id="developerName" required 
+                       placeholder="Enter your full name (e.g., John Doe)">
+                <div class="helper-text">This name will appear in the monitoring portal</div>
+            </div>
+
+            <div class="form-group">
+                <label for="accessToken">🔑 Access Token</label>
+                <input type="text" id="accessToken" required 
+                       placeholder="Paste your access token (AWToken_xxxxxxxx)">
+                <div class="helper-text">Access token provided by your administrator</div>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                🚀 Register & Start Monitoring
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Registering developer...</p>
+            </div>
+        </form>
+
+        <div id="messageArea"></div>
+    </div>
+
+    <script>
+        let detectedData = {
+            ip: '127.0.0.1',
+            hostname: 'localhost',
+            port: 5600
+        };
+
+        // Auto-detect system info on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            detectSystemInfo();
+        });
+
+        async function detectSystemInfo() {
+            try {
+                // Try to get local IP
+                const ip = await getLocalIP();
+                detectedData.ip = ip;
+                
+                // Test ActivityWatch connection
+                const awRunning = await testActivityWatch();
+                
+                // Update UI
+                const autoInfo = document.getElementById('autoInfo');
+                const detectedInfo = document.getElementById('detectedInfo');
+                
+                detectedInfo.innerHTML = `
+                    IP: ${ip} | 
+                    ActivityWatch: ${awRunning ? '✅ Running' : '❌ Not Running'} | 
+                    Port: 5600
+                `;
+                autoInfo.style.display = 'block';
+                
+            } catch (error) {
+                console.log('Auto-detection failed:', error);
+                // Continue with defaults
+            }
+        }
+
+        function getLocalIP() {
+            return new Promise((resolve) => {
+                const rtc = new RTCPeerConnection({iceServers: []});
+                let found = false;
+
+                rtc.onicecandidate = function(event) {
+                    if (event.candidate && !found) {
+                        const candidate = event.candidate.candidate;
+                        const ipMatch = candidate.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/);
+                        if (ipMatch && ipMatch[0] !== '127.0.0.1') {
+                            found = true;
+                            rtc.close();
+                            resolve(ipMatch[0]);
+                        }
+                    }
+                };
+
+                rtc.createDataChannel('');
+                rtc.createOffer().then(offer => rtc.setLocalDescription(offer));
+
+                setTimeout(() => {
+                    if (!found) {
+                        rtc.close();
+                        resolve('127.0.0.1');
+                    }
+                }, 2000);
+            });
+        }
+
+        async function testActivityWatch() {
+            try {
+                const response = await fetch('http://localhost:5600/api/0/info', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                return response.ok;
+            } catch {
+                return false;
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const messageArea = document.getElementById('messageArea');
+            
+            // Show loading
+            submitBtn.style.display = 'none';
+            loading.classList.add('show');
+            messageArea.innerHTML = '';
+            
+            // Get form data
+            const developerName = document.getElementById('developerName').value.trim();
+            const accessToken = document.getElementById('accessToken').value.trim();
+            
+            // Generate developer ID from name (lowercase, replace spaces with underscores)
+            const developerId = developerName.toLowerCase()
+                .replace(/[^a-z0-9\s]/g, '')
+                .replace(/\s+/g, '_')
+                .substring(0, 50);
+            
+            const registrationData = {
+                developer_name: developerName,
+                developer_id: developerId,
+                api_token: accessToken,
+                ip_address: detectedData.ip,
+                activitywatch_port: detectedData.port,
+                hostname: detectedData.hostname || 'unknown',
+                active: true
+            };
+
+            try {
+                const response = await fetch('/api/register-developer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(registrationData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageArea.innerHTML = `
+                        <div class="success-message">
+                            🎉 <strong>Registration Successful!</strong><br><br>
+                            <strong>Developer ID:</strong> ${developerId}<br>
+                            <strong>Status:</strong> Your ActivityWatch data will be monitored automatically<br>
+                            <strong>Portal:</strong> You'll appear in the admin portal immediately<br><br>
+                            <em>Keep ActivityWatch running for continuous monitoring.</em>
+                        </div>
+                    `;
+                    
+                    // Reset form
+                    document.getElementById('registrationForm').reset();
+                    
+                } else {
+                    messageArea.innerHTML = `
+                        <div class="error-message">
+                            ❌ <strong>Registration Failed</strong><br>
+                            ${result.detail || 'Unknown error occurred'}
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                messageArea.innerHTML = `
+                    <div class="error-message">
+                        ❌ <strong>Connection Error</strong><br>
+                        Could not connect to server: ${error.message}
+                    </div>
+                `;
+            } finally {
+                // Hide loading
+                loading.classList.remove('show');
+                submitBtn.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

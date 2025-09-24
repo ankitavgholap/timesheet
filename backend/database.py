@@ -4,32 +4,41 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load environment files explicitly
+load_dotenv('.env.local', override=True)  # Load local first
+load_dotenv('.env.production', override=False)  # Fallback to production
+load_dotenv()  # Load default .env if exists
 
-# Get DATABASE_URL from environment, with SQLite as fallback
+# Get DATABASE_URL from environment
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Debug print (remove this later)
+# Debug print
 print(f"DEBUG: DATABASE_URL from env: {repr(DATABASE_URL)}")
+print(f"DEBUG: ENVIRONMENT from env: {repr(os.getenv('ENVIRONMENT'))}")
 
 # Use SQLite as default if no DATABASE_URL or if there's an issue
 if not DATABASE_URL or DATABASE_URL == "":
-    DATABASE_URL = "sqlite:///./timesheet.db"
-    print(f"DEBUG: Using default SQLite: {DATABASE_URL}")
+    DATABASE_URL="postgresql://postgres:asdf1234@localhost:5432/timesheet"
+    print(f"DEBUG: Using default Postgres: {DATABASE_URL}")
 
 # Create engine with appropriate settings
 try:
     if DATABASE_URL.startswith("sqlite"):
         engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+        print("DEBUG: Using SQLite engine")
     elif DATABASE_URL.startswith("postgresql"):
         engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=300)
+        print("DEBUG: Using PostgreSQL engine")
     else:
         engine = create_engine(DATABASE_URL)
+        print("DEBUG: Using generic engine")
     
-    print(f"DEBUG: Engine created successfully with URL: {DATABASE_URL}")
+    # Test connection
+    with engine.connect() as conn:
+        print(f"DEBUG: ✅ Database connection successful!")
     
 except Exception as e:
-    print(f"DEBUG: Engine creation failed: {e}")
+    print(f"DEBUG: ❌ Engine creation failed: {e}")
     print(f"DEBUG: Falling back to SQLite")
     DATABASE_URL = "sqlite:///./timesheet.db"
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})

@@ -21,8 +21,11 @@ class ActivityRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
-    # Multi-developer support (stateless)
+    # Multi-developer support (stateless) - Enhanced
     developer_id = Column(String, index=True, nullable=True)  # String identifier, no FK
+    developer_name = Column(String(255), index=True, nullable=True)  # Developer display name
+    developer_hostname = Column(String(255), nullable=True)  # Hostname of developer machine
+    device_id = Column(String(255), nullable=True)  # ActivityWatch device ID
     
     application_name = Column(String, index=True)
     window_title = Column(Text)
@@ -33,7 +36,9 @@ class ActivityRecord(Base):
     detailed_activity = Column(Text, nullable=True)  # Enhanced description
     category = Column(String, index=True)  # browser, ide, productivity, etc.
     duration = Column(Float)  # Duration in seconds
-    timestamp = Column(DateTime(timezone=True))
+    timestamp = Column(DateTime(timezone=True))  # Original activity timestamp
+    activity_timestamp = Column(DateTime(timezone=True), nullable=True)  # For better querying
+    bucket_name = Column(String(255), nullable=True)  # ActivityWatch bucket name
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Project information fields
@@ -58,14 +63,31 @@ class Developer(Base):
     last_sync = Column(DateTime(timezone=True), nullable=True)
 
 
-# Legacy model (if referenced elsewhere)
+# Enhanced model for dynamic developer discovery
 class DiscoveredDeveloper(Base):
-    __tablename__ = "discovered_developers"
+    """Cache discovered developers to avoid repeated network scans"""
+    __tablename__ = 'discovered_developers_enhanced'
     
-    id = Column(Integer, primary_key=True, index=True)
-    developer_name = Column(String)
-    developer_pattern = Column(String)
-    confidence_score = Column(Float)
-    first_seen = Column(DateTime(timezone=True))
-    last_seen = Column(DateTime(timezone=True))
+    id = Column(String(255), primary_key=True)  # developer_id
+    name = Column(String(255))
+    host = Column(String(255))
+    port = Column(Integer)
+    hostname = Column(String(255))
+    device_id = Column(String(255))
+    description = Column(Text)
+    version = Column(String(50))
+    bucket_count = Column(Integer, default=0)
     activity_count = Column(Integer, default=0)
+    
+    # Status tracking
+    status = Column(String(50), default='unknown')  # online, offline, database_only
+    last_seen = Column(DateTime(timezone=True))
+    last_checked = Column(DateTime(timezone=True))
+    
+    # Discovery metadata
+    source = Column(String(50))  # network, local, database
+    discovered_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_active = Column(Boolean, default=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())

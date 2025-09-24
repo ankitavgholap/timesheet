@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Registration - ActivityWatch Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .auto-detection {
+            background: #f0f8ff;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .auto-detection h3 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .detection-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e1e5e9;
+            text-align: center;
+        }
+
+        .detection-item .label {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .detection-item .value {
+            font-weight: bold;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group .helper-text {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 18px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn .loading {
+            display: none;
+        }
+
+        .btn.loading .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        .btn.loading .text {
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+
+        .status-indicator.success {
+            background: #28a745;
+        }
+
+        .status-indicator.error {
+            background: #dc3545;
+        }
+
+        .status-indicator.loading {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border: 1px solid #c3e6cb;
+            text-align: center;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border: 1px solid #f5c6cb;
+            text-align: center;
+        }
+
+        .detected-info {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 15px;
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👨‍💻 Developer Registration</h1>
+            <p>Simple setup for ActivityWatch monitoring</p>
+        </div>
+
+        <!-- Auto-Detection Status -->
+        <div class="auto-detection">
+            <h3>
+                🔍 Auto-Detecting System Info
+                <span class="status-indicator loading" id="detection-status"></span>
+            </h3>
+            
+            <div class="detection-grid" id="detection-grid">
+                <div class="detection-item">
+                    <div class="label">IP Address</div>
+                    <div class="value" id="detected-ip">Detecting...</div>
+                </div>
+                <div class="detection-item">
+                    <div class="label">ActivityWatch</div>
+                    <div class="value" id="aw-status">Checking...</div>
+                </div>
+                <div class="detection-item">
+                    <div class="label">System</div>
+                    <div class="value" id="system-info">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simple Registration Form -->
+        <form id="registration-form">
+            <div class="form-group">
+                <label for="developer-name">👤 Your Name</label>
+                <input type="text" id="developer-name" name="developer_name" required 
+                       placeholder="Enter your full name (e.g., John Doe)">
+                <div class="helper-text">This will be displayed in the monitoring portal</div>
+            </div>
+
+            <div class="form-group">
+                <label for="access-token">🔑 Access Token</label>
+                <input type="text" id="access-token" name="access_token" required 
+                       placeholder="Paste your access token (AWToken_xxxxxxxx)">
+                <div class="helper-text">Provided by your system administrator</div>
+            </div>
+
+            <button type="submit" class="btn" id="submit-btn">
+                <span class="loading">🔄</span>
+                <span class="text">🚀 Register & Start Monitoring</span>
+            </button>
+        </form>
+
+        <div class="detected-info">
+            <strong>Auto-detected settings:</strong><br>
+            IP: <span id="final-ip">-</span> | 
+            Port: <span id="final-port">5600</span> | 
+            Hostname: <span id="final-hostname">-</span> | 
+            ActivityWatch: <span id="final-aw-status">-</span>
+        </div>
+
+        <div id="message-area"></div>
+    </div>
+
+    <script>
+        let detectedInfo = {
+            ip: null,
+            hostname: null,
+            activitywatch_running: false,
+            port: 5600,
+            browser: null
+        };
+
+        // Initialize detection on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            detectAllSystemInfo();
+        });
+
+        async function detectAllSystemInfo() {
+            const statusEl = document.getElementById('detection-status');
+            
+            try {
+                // Step 1: Get local IP
+                await detectIP();
+                
+                // Step 2: Get system info
+                detectSystemInfo();
+                
+                // Step 3: Check ActivityWatch
+                await checkActivityWatch();
+                
+                // Update status
+                statusEl.className = 'status-indicator success';
+                
+                // Enable form
+                document.getElementById('submit-btn').disabled = false;
+                
+                // Update final summary
+                updateDetectedSummary();
+                
+            } catch (error) {
+                console.error('Detection failed:', error);
+                statusEl.className = 'status-indicator error';
+                
+                // Enable form anyway with defaults
+                document.getElementById('submit-btn').disabled = false;
+                detectedInfo.ip = '127.0.0.1';
+                detectedInfo.hostname = 'localhost';
+                updateDetectedSummary();
+            }
+        }
+
+        async function detectIP() {
+            try {
+                const ip = await getLocalIP();
+                detectedInfo.ip = ip;
+                document.getElementById('detected-ip').textContent = ip;
+                document.getElementById('final-ip').textContent = ip;
+            } catch (error) {
+                detectedInfo.ip = '127.0.0.1';
+                document.getElementById('detected-ip').textContent = '127.0.0.1 (fallback)';
+                document.getElementById('final-ip').textContent = '127.0.0.1';
+            }
+        }
+
+        function detectSystemInfo() {
+            // Get hostname
+            detectedInfo.hostname = window.location.hostname || 'localhost';
+            document.getElementById('final-hostname').textContent = detectedInfo.hostname;
+            
+            // Get browser/system info
+            const userAgent = navigator.userAgent;
+            let systemInfo = 'Unknown';
+            
+            if (userAgent.includes('Windows')) systemInfo = 'Windows';
+            else if (userAgent.includes('Mac')) systemInfo = 'Mac';
+            else if (userAgent.includes('Linux')) systemInfo = 'Linux';
+            
+            document.getElementById('system-info').textContent = systemInfo;
+            detectedInfo.browser = systemInfo;
+        }
+
+        async function checkActivityWatch() {
+            try {
+                const response = await fetch(`http://localhost:5600/api/0/info`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+
+                if (response.ok) {
+                    detectedInfo.activitywatch_running = true;
+                    document.getElementById('aw-status').textContent = '✅ Running';
+                    document.getElementById('final-aw-status').textContent = 'Running';
+                } else {
+                    throw new Error('Not accessible');
+                }
+            } catch (error) {
+                detectedInfo.activitywatch_running = false;
+                document.getElementById('aw-status').textContent = '❌ Not Running';
+                document.getElementById('final-aw-status').textContent = 'Not Running';
+            }
+        }
+
+        function getLocalIP() {
+            return new Promise((resolve, reject) => {
+                const rtc = new RTCPeerConnection({iceServers: []});
+                let found = false;
+
+                rtc.onicecandidate = function(event) {
+                    if (event.candidate && !found) {
+                        const candidate = event.candidate.candidate;
+                        const ipMatch = candidate.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/);
+                        if (ipMatch && ipMatch[0] !== '127.0.0.1') {
+                            found = true;
+                            rtc.close();
+                            resolve(ipMatch[0]);
+                        }
+                    }
+                };
+
+                rtc.createDataChannel('');
+                rtc.createOffer().then(offer => rtc.setLocalDescription(offer));
+
+                // Timeout after 3 seconds
+                setTimeout(() => {
+                    if (!found) {
+                        rtc.close();
+                        resolve('127.0.0.1');
+                    }
+                }, 3000);
+            });
+        }
+
+        function updateDetectedSummary() {
+            document.getElementById('final-ip').textContent = detectedInfo.ip || 'Unknown';
+            document.getElementById('final-port').textContent = detectedInfo.port;
+            document.getElementById('final-hostname').textContent = detectedInfo.hostname || 'Unknown';
+            document.getElementById('final-aw-status').textContent = detectedInfo.activitywatch_running ? 'Running' : 'Not Running';
+        }
+
+        // Handle form submission
+        document.getElementById('registration-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const messageArea = document.getElementById('message-area');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
+            
+            // Get form data
+            const formData = new FormData(e.target);
+            const developerName = formData.get('developer_name').trim();
+            const accessToken = formData.get('access_token').trim();
+            
+            // Generate developer ID from name
+            const developerId = generateDeveloperID(developerName);
+            
+            // Prepare registration data with auto-detected info
+            const registrationData = {
+                developer_name: developerName,
+                developer_id: developerId,
+                api_token: accessToken,
+                ip_address: detectedInfo.ip,
+                activitywatch_port: detectedInfo.port,
+                hostname: detectedInfo.hostname,
+                active: true,
+                browser_info: detectedInfo.browser,
+                registration_time: new Date().toISOString()
+            };
+
+            try {
+                const response = await fetch('/api/register-developer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(registrationData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageArea.innerHTML = `
+                        <div class="success-message">
+                            🎉 <strong>Registration Successful!</strong><br><br>
+                            <strong>Developer ID:</strong> ${developerId}<br>
+                            <strong>Monitoring:</strong> Your ActivityWatch data will be automatically collected every 10 seconds<br>
+                            <strong>Portal Access:</strong> You'll appear in the admin portal immediately<br><br>
+                            <em>Keep ActivityWatch running on your system for continuous monitoring.</em>
+                        </div>
+                    `;
+                    
+                    // Reset form
+                    e.target.reset();
+                    
+                    // Optionally redirect after success
+                    setTimeout(() => {
+                        if (confirm('Registration complete! Do you want to view the monitoring portal?')) {
+                            window.location.href = '/activity-tracker';
+                        }
+                    }, 3000);
+                    
+                } else {
+                    messageArea.innerHTML = `
+                        <div class="error-message">
+                            ❌ <strong>Registration Failed</strong><br>
+                            ${result.detail || 'Unknown error occurred'}
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                messageArea.innerHTML = `
+                    <div class="error-message">
+                        ❌ <strong>Connection Error</strong><br>
+                        Could not connect to registration server: ${error.message}
+                    </div>
+                `;
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('loading');
+            }
+        });
+
+        function generateDeveloperID(name) {
+            // Convert name to a clean developer ID
+            return name
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+                .replace(/\s+/g, '_') // Replace spaces with underscores
+                .substring(0, 50); // Limit length
+        }
+
+        // Auto-detect again if user focuses on form (in case they started ActivityWatch)
+        document.getElementById('developer-name').addEventListener('focus', function() {
+            if (!detectedInfo.activitywatch_running) {
+                checkActivityWatch();
+            }
+        });
+    </script>
+</body>
+</html>
