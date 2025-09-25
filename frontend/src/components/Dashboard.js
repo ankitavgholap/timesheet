@@ -102,7 +102,6 @@ const Dashboard = () => {
     );
   }
 
-  // Production mode - show developer list or selected developer dashboard
   if (selectedDeveloper) {
     return <DeveloperDashboard developer={selectedDeveloper} onBack={handleBackToList} />;
   }
