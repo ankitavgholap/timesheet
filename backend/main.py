@@ -33,10 +33,12 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Timesheet API", version="1.0.0")
 
-# CORS middleware
+# CORS middleware - use environment-aware configuration
+from config import Config
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=Config.get_cors_origins(),  # Environment-aware CORS
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
