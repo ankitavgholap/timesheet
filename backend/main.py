@@ -36,9 +36,14 @@ app = FastAPI(title="Timesheet API", version="1.0.0")
 # CORS middleware - use environment-aware configuration
 from config import Config
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=Config.get_cors_origins(),  # Environment-aware CORS
+    allow_origins=[
+        "http://timesheet.firsteconomy.com",
+        "https://timesheet.firsteconomy.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
