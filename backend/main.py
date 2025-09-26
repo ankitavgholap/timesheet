@@ -118,6 +118,42 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username already registered")
     return crud.create_user(db=db, user=user)
 
+@app.post("/api/sync")
+async def receive_sync_data(sync_data: dict, db: Session = Depends(get_db)):
+    try:
+        name = sync_data.get("name")
+        token = sync_data.get("token") 
+        data = sync_data.get("data", [])
+        
+        # Validate developer exists
+        developer = db.execute(
+            text("SELECT developer_id FROM developers WHERE api_token = :token"),
+            {"token": token}
+        ).fetchone()
+        
+        if not developer:
+            return {"error": "Invalid token"}
+        
+        # Save activities
+        for activity in data:
+            db.execute(text("""
+                INSERT INTO activity_records (developer_id, timestamp, duration, activity_data, created_at)
+                VALUES (:dev_id, :timestamp, :duration, :data, NOW())
+            """), {
+                "dev_id": developer[0],
+                "timestamp": activity.get("timestamp"),
+                "duration": activity.get("duration", 0),
+                "data": json.dumps(activity.get("data", {}))
+            })
+        
+        db.commit()
+        return {"success": True, "received": len(data)}
+        
+    except Exception as e:
+        db.rollback()
+        return {"error": str(e)}
+
+
 @app.post("/token", response_model=schemas.Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = auth.authenticate_user(db, form_data.username, form_data.password)
