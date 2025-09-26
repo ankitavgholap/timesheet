@@ -321,6 +321,10 @@ async def serve_developer_selection_portal():
     """Serve the developer selection portal"""
     return FileResponse("developer_selection_portal.html")
 
+@app.get("/developer-setup")
+async def serve_developer_setup():
+    return FileResponse("developer-setup.html")    
+
 @app.get("/developers-list")
 async def serve_developers_list():
     return FileResponse("developers_list.html")    
