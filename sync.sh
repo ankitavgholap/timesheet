@@ -1,5 +1,5 @@
 #!/bin/bash
-# ActivityWatch Sync Script - Dynamic Version
+# ActivityWatch Sync Script - Dynamic Version with Fixed Bucket Extraction
 
 # Get developer details from:
 # 1. Command line arguments: ./sync.sh "name" "token"
@@ -63,16 +63,43 @@ send_data() {
         return 1
     fi
     
+    # Get buckets from ActivityWatch
     buckets_response=$(curl -s --max-time 10 "$LOCAL_AW/buckets" 2>/dev/null)
     if [ $? -ne 0 ] || [ -z "$buckets_response" ]; then
         echo "ActivityWatch not responding"
         return 1
     fi
     
-    bucket_names=$(echo "$buckets_response" | grep -o '"[^"]*"' | head -20 | tr -d '"')
+    # Extract bucket names using Python for reliability
+    bucket_names=""
+    if command -v python3 &> /dev/null; then
+        bucket_names=$(echo "$buckets_response" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    for key in data.keys():
+        print(key)
+except:
+    pass
+" 2>/dev/null)
+    fi
+    
+    # Fallback: Extract bucket names that start with 'aw-'
+    if [ -z "$bucket_names" ]; then
+        # Look for patterns like "aw-watcher-window_hostname"
+        bucket_names=$(echo "$buckets_response" | sed -n 's/.*"\(aw-[^"]*\)".*/\1/p' | sort -u)
+    fi
+    
+    if [ -z "$bucket_names" ]; then
+        echo "No ActivityWatch buckets found"
+        echo "Debug: Check buckets at http://localhost:5600/#/buckets"
+        return 1
+    fi
+    
     bucket_count=$(echo "$bucket_names" | wc -l)
     echo "Found $bucket_count ActivityWatch buckets"
     
+    # Calculate time range
     if [[ "$OSTYPE" == "darwin"* ]]; then
         start_time=$(date -u -v-6M '+%Y-%m-%dT%H:%M:%S.000Z')
         end_time=$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')
@@ -86,7 +113,13 @@ send_data() {
     
     for bucket in $bucket_names; do
         if [ -n "$bucket" ]; then
+            # Make sure bucket doesn't contain 'http://' or slashes
+            if [[ "$bucket" == *"http"* ]] || [[ "$bucket" == *"/"* ]]; then
+                continue
+            fi
+            
             events_url="$LOCAL_AW/buckets/$bucket/events?start=$start_time&end=$end_time"
+            echo "Checking bucket: $bucket"
             
             # Get events and save to temp file to preserve JSON
             curl -s --max-time 15 "$events_url" -o /tmp/aw_events_$$.json 2>/dev/null
@@ -115,8 +148,10 @@ send_data() {
         return 0
     fi
     
+    # Create payload
     payload="{\"name\":\"$DEVELOPER_NAME\",\"token\":\"$API_TOKEN\",\"data\":$all_events,\"timestamp\":\"$end_time\"}"
     
+    # Send to server
     response=$(curl -s --max-time 20 -X POST -H "Content-Type: application/json" -d "$payload" "$SERVER_URL" 2>/dev/null)
     
     if [ $? -eq 0 ]; then
@@ -125,6 +160,9 @@ send_data() {
             echo "✓ Synced $event_count events successfully"
         else
             echo "✗ Server error: $response"
+            # Debug: save response for inspection
+            echo "$response" > /tmp/sync_error_$$.json
+            echo "   (Debug info saved to /tmp/sync_error_$$.json)"
         fi
     else
         echo "✗ Failed to connect to server"
@@ -136,6 +174,16 @@ echo "ActivityWatch Sync for $DEVELOPER_NAME"
 echo "=================================================="
 echo "Press Ctrl+C to stop"
 echo ""
+
+# Initial check for ActivityWatch
+echo "Testing ActivityWatch connection..."
+if curl -s --max-time 5 "$LOCAL_AW/info" > /dev/null 2>&1; then
+    echo "✓ ActivityWatch is running"
+else
+    echo "✗ ActivityWatch is not running or not accessible"
+    echo "  Please start ActivityWatch first"
+    exit 1
+fi
 
 while true; do
     send_data
