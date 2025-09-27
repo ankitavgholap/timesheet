@@ -3,9 +3,47 @@
 # ActivityWatch Sync Script - Mac/Linux Version
 # No additional software installation required!
 
-# CHANGE THESE VALUES:
-DEVELOPER_NAME="riddhidhakhara"
-API_TOKEN="AWToken_vKeY5pcMmyvUkfh_GJh8JMHVQWhy2GYTnwxNuw2NhLI"
+# Get developer name and token from:
+# 1. Command line arguments
+# 2. Environment variables
+# 3. Config file
+# 4. Interactive prompt
+
+if [ -n "$1" ] && [ -n "$2" ]; then
+    # From command line arguments
+    DEVELOPER_NAME="$1"
+    API_TOKEN="$2"
+elif [ -n "$AW_DEVELOPER_NAME" ] && [ -n "$AW_API_TOKEN" ]; then
+    # From environment variables
+    DEVELOPER_NAME="$AW_DEVELOPER_NAME"
+    API_TOKEN="$AW_API_TOKEN"
+elif [ -f "$HOME/.aw-sync-config" ]; then
+    # From config file
+    source "$HOME/.aw-sync-config"
+else
+    # Interactive prompt
+    echo "ActivityWatch Sync Setup"
+    echo "========================"
+    read -p "Enter your developer name: " DEVELOPER_NAME
+    read -p "Enter your API token: " API_TOKEN
+    
+    # Offer to save for next time
+    read -p "Save credentials for future use? (y/n): " save_config
+    if [ "$save_config" = "y" ] || [ "$save_config" = "Y" ]; then
+        echo "DEVELOPER_NAME=\"$DEVELOPER_NAME\"" > "$HOME/.aw-sync-config"
+        echo "API_TOKEN=\"$API_TOKEN\"" >> "$HOME/.aw-sync-config"
+        chmod 600 "$HOME/.aw-sync-config"
+        echo "Credentials saved to ~/.aw-sync-config"
+    fi
+fi
+
+# Validate inputs
+if [ -z "$DEVELOPER_NAME" ] || [ -z "$API_TOKEN" ]; then
+    echo "Error: Developer name and API token are required!"
+    echo "Usage: $0 <developer_name> <api_token>"
+    echo "Or set AW_DEVELOPER_NAME and AW_API_TOKEN environment variables"
+    exit 1
+fi
 
 # Don't change below this line
 SERVER_URL="http://api-timesheet.firsteconomy.com/api/sync"
@@ -44,31 +82,30 @@ send_data() {
         end_time=$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')
     fi
     
-    # Collect events from all buckets
-    all_events="["
-    first_bucket=true
+    # Collect events from first bucket with data (FIXED JSON HANDLING)
+    all_events=""
     
     for bucket in $bucket_names; do
-        if [ -n "$bucket" ]; then
+        if [ -n "$bucket" ] && [ -z "$all_events" ]; then
             events_url="$LOCAL_AW/buckets/$bucket/events?start=$start_time&end=$end_time"
             events=$(curl -s --max-time 15 "$events_url" 2>/dev/null)
             
+            # Use first bucket that has valid events
             if [ $? -eq 0 ] && [ "$events" != "[]" ] && [ -n "$events" ]; then
-                if [ "$first_bucket" = false ]; then
-                    all_events="$all_events,"
-                fi
-                # Remove the outer brackets and add to our collection
-                events_clean=$(echo "$events" | sed 's/^\[//;s/\]$//')
-                all_events="$all_events$events_clean"
-                first_bucket=false
+                all_events="$events"
+                echo "Using events from bucket: $bucket"
+                break
             fi
         fi
     done
     
-    all_events="$all_events]"
+    # If no events found, use empty array
+    if [ -z "$all_events" ]; then
+        all_events="[]"
+    fi
     
     # Check if we have any events
-    if [ "$all_events" = "[]" ] || [ "$all_events" = "[" ]; then
+    if [ "$all_events" = "[]" ]; then
         echo "No new data to sync"
         return 0
     fi
