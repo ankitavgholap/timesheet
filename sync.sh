@@ -3,9 +3,54 @@
 # ActivityWatch Sync Script - Mac/Linux Version
 # No additional software installation required!
 
-# CHANGE THESE VALUES:
-DEVELOPER_NAME="riddhidhakhara"
-API_TOKEN="AWToken_vKeY5pcMmyvUkfh_GJh8JMHVQWhy2GYTnwxNuw2NhLI"
+# Get developer details from:
+# 1. Command line arguments: ./sync.sh "name" "token"
+# 2. Environment variables: AW_DEVELOPER_NAME and AW_API_TOKEN
+# 3. Config file: ~/.aw-sync-config
+
+if [ -n "$1" ] && [ -n "$2" ]; then
+    # From command line arguments
+    DEVELOPER_NAME="$1"
+    API_TOKEN="$2"
+elif [ -n "$AW_DEVELOPER_NAME" ] && [ -n "$AW_API_TOKEN" ]; then
+    # From environment variables
+    DEVELOPER_NAME="$AW_DEVELOPER_NAME"
+    API_TOKEN="$AW_API_TOKEN"
+elif [ -f "$HOME/.aw-sync-config" ]; then
+    # From config file
+    source "$HOME/.aw-sync-config"
+else
+    # Interactive prompt
+    echo "ActivityWatch Sync Setup"
+    echo "========================"
+    read -p "Enter your developer name: " DEVELOPER_NAME
+    read -s -p "Enter your API token: " API_TOKEN
+    echo ""
+    
+    # Offer to save for future use
+    read -p "Save credentials for future use? (y/n): " save_config
+    if [ "$save_config" = "y" ] || [ "$save_config" = "Y" ]; then
+        echo "DEVELOPER_NAME=\"$DEVELOPER_NAME\"" > "$HOME/.aw-sync-config"
+        echo "API_TOKEN=\"$API_TOKEN\"" >> "$HOME/.aw-sync-config"
+        chmod 600 "$HOME/.aw-sync-config"
+        echo "Credentials saved to ~/.aw-sync-config"
+    fi
+fi
+
+# Validate inputs
+if [ -z "$DEVELOPER_NAME" ] || [ -z "$API_TOKEN" ]; then
+    echo "Error: Developer name and API token are required!"
+    echo ""
+    echo "Usage options:"
+    echo "  1. ./sync.sh \"developer_name\" \"api_token\""
+    echo "  2. Export environment variables:"
+    echo "     export AW_DEVELOPER_NAME=\"your_name\""
+    echo "     export AW_API_TOKEN=\"your_token\""
+    echo "  3. Create config file ~/.aw-sync-config with:"
+    echo "     DEVELOPER_NAME=\"your_name\""
+    echo "     API_TOKEN=\"your_token\""
+    exit 1
+fi
 
 # Don't change below this line
 SERVER_URL="http://api-timesheet.firsteconomy.com/api/sync"
@@ -44,47 +89,60 @@ send_data() {
         end_time=$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')
     fi
     
-    # Collect events from first bucket with data (FIXED)
-    all_events=""
+    # Create temp file for payload
+    TEMP_FILE="/tmp/aw_sync_payload_$$.json"
+    
+    # Find first bucket with events and save to temp file
+    found_events=false
     
     for bucket in $bucket_names; do
         if [ -n "$bucket" ]; then
             events_url="$LOCAL_AW/buckets/$bucket/events?start=$start_time&end=$end_time"
-            events=$(curl -s --max-time 15 "$events_url" 2>/dev/null)
             
-            # Use first bucket that has valid events
-            if [ $? -eq 0 ] && [ "$events" != "[]" ] && [ -n "$events" ]; then
-                all_events="$events"
-                echo "Using events from bucket: $bucket"
-                break
+            # Get events and save directly to file
+            curl -s --max-time 15 "$events_url" -o "/tmp/aw_events_$$.json" 2>/dev/null
+            
+            if [ $? -eq 0 ] && [ -s "/tmp/aw_events_$$.json" ]; then
+                # Check if file contains valid events (not empty array)
+                if ! grep -q '^\[\]$' "/tmp/aw_events_$$.json"; then
+                    echo "Using events from bucket: $bucket"
+                    
+                    # Build JSON payload using printf for proper escaping
+                    printf '{"name":"%s","token":"%s","data":' "$DEVELOPER_NAME" "$API_TOKEN" > "$TEMP_FILE"
+                    cat "/tmp/aw_events_$$.json" >> "$TEMP_FILE"
+                    printf ',"timestamp":"%s"}' "$end_time" >> "$TEMP_FILE"
+                    
+                    found_events=true
+                    break
+                fi
             fi
         fi
     done
     
-    # If no events found, use empty array
-    if [ -z "$all_events" ]; then
-        all_events="[]"
-    fi
+    # Clean up events temp file
+    rm -f "/tmp/aw_events_$$.json"
     
-    # Check if we have any events
-    if [ "$all_events" = "[]" ]; then
+    if [ "$found_events" = false ]; then
         echo "No new data to sync"
+        rm -f "$TEMP_FILE"
         return 0
     fi
     
-    # Create payload
-    payload="{\"name\":\"$DEVELOPER_NAME\",\"token\":\"$API_TOKEN\",\"data\":$all_events,\"timestamp\":\"$end_time\"}"
-    
-    # Send to server
+    # Send to server using the temp file
     response=$(curl -s --max-time 20 \
         -X POST \
         -H "Content-Type: application/json" \
-        -d "$payload" \
+        --data-binary "@$TEMP_FILE" \
         "$SERVER_URL" 2>/dev/null)
+    
+    # Count events for reporting
+    event_count=$(grep -o '{' "$TEMP_FILE" | wc -l)
+    
+    # Clean up temp file
+    rm -f "$TEMP_FILE"
     
     if [ $? -eq 0 ]; then
         if echo "$response" | grep -q '"success":true'; then
-            event_count=$(echo "$all_events" | grep -o '{' | wc -l)
             echo "✓ Synced $event_count events successfully"
         else
             echo "✗ Server error: $response"
