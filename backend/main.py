@@ -41,13 +41,16 @@ from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "http://localhost:3000",
         "http://timesheet.firsteconomy.com",
-        "https://timesheet.firsteconomy.com"
+        "http://api-timesheet.firsteconomy.com",
+        "https://timesheet.firsteconomy.com",  # if using HTTPS
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
 app.include_router(stateless_router, prefix="/api/v1", tags=["stateless-webhook"])
 
 # Add multi-developer support
