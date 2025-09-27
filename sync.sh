@@ -3,47 +3,9 @@
 # ActivityWatch Sync Script - Mac/Linux Version
 # No additional software installation required!
 
-# Get developer name and token from:
-# 1. Command line arguments
-# 2. Environment variables
-# 3. Config file
-# 4. Interactive prompt
-
-if [ -n "$1" ] && [ -n "$2" ]; then
-    # From command line arguments
-    DEVELOPER_NAME="$1"
-    API_TOKEN="$2"
-elif [ -n "$AW_DEVELOPER_NAME" ] && [ -n "$AW_API_TOKEN" ]; then
-    # From environment variables
-    DEVELOPER_NAME="$AW_DEVELOPER_NAME"
-    API_TOKEN="$AW_API_TOKEN"
-elif [ -f "$HOME/.aw-sync-config" ]; then
-    # From config file
-    source "$HOME/.aw-sync-config"
-else
-    # Interactive prompt
-    echo "ActivityWatch Sync Setup"
-    echo "========================"
-    read -p "Enter your developer name: " DEVELOPER_NAME
-    read -p "Enter your API token: " API_TOKEN
-    
-    # Offer to save for next time
-    read -p "Save credentials for future use? (y/n): " save_config
-    if [ "$save_config" = "y" ] || [ "$save_config" = "Y" ]; then
-        echo "DEVELOPER_NAME=\"$DEVELOPER_NAME\"" > "$HOME/.aw-sync-config"
-        echo "API_TOKEN=\"$API_TOKEN\"" >> "$HOME/.aw-sync-config"
-        chmod 600 "$HOME/.aw-sync-config"
-        echo "Credentials saved to ~/.aw-sync-config"
-    fi
-fi
-
-# Validate inputs
-if [ -z "$DEVELOPER_NAME" ] || [ -z "$API_TOKEN" ]; then
-    echo "Error: Developer name and API token are required!"
-    echo "Usage: $0 <developer_name> <api_token>"
-    echo "Or set AW_DEVELOPER_NAME and AW_API_TOKEN environment variables"
-    exit 1
-fi
+# CHANGE THESE VALUES:
+DEVELOPER_NAME="riddhidhakhara"
+API_TOKEN="AWToken_vKeY5pcMmyvUkfh_GJh8JMHVQWhy2GYTnwxNuw2NhLI"
 
 # Don't change below this line
 SERVER_URL="http://api-timesheet.firsteconomy.com/api/sync"
@@ -82,11 +44,11 @@ send_data() {
         end_time=$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')
     fi
     
-    # Collect events from first bucket with data (FIXED JSON HANDLING)
+    # Collect events from first bucket with data (FIXED)
     all_events=""
     
     for bucket in $bucket_names; do
-        if [ -n "$bucket" ] && [ -z "$all_events" ]; then
+        if [ -n "$bucket" ]; then
             events_url="$LOCAL_AW/buckets/$bucket/events?start=$start_time&end=$end_time"
             events=$(curl -s --max-time 15 "$events_url" 2>/dev/null)
             
