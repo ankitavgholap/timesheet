@@ -6,7 +6,7 @@ $DEVELOPER_NAME = "riddhidhakhara"
 $API_TOKEN = "AWToken_vKeY5pcMmyvUkfh_GJh8JMHVQWhy2GYTnwxNuw2NhLI"
 
 # Don't change below this line
-$SERVER_URL = "http://api-timesheet.firsteconomy.com/api/sync"
+$SERVER_URL = "http://api-timesheet.firsteconomy.com/api/sync/"
 $LOCAL_AW = "http://localhost:5600/api/0"
 
 function Send-ActivityData {
