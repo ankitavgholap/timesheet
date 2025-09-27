@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
+import json
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -42,12 +43,16 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://localhost:3001",
         "http://timesheet.firsteconomy.com",
+        "https://timesheet.firsteconomy.com",
         "http://api-timesheet.firsteconomy.com",
-        "https://timesheet.firsteconomy.com",  # if using HTTPS
+        "https://api-timesheet.firsteconomy.com",
+        "https://timesheet-api.firsteconomy.com",  # From .env.production
+        "*"  # Temporarily allow all origins to debug
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
