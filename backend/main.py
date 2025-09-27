@@ -122,8 +122,9 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 async def receive_sync_data(sync_data: dict, db: Session = Depends(get_db)):
     try:
         name = sync_data.get("name")
-        token = sync_data.get("token") 
+        token = sync_data.get("token")
         data = sync_data.get("data", [])
+        timestamp = sync_data.get("timestamp")
         
         # Validate developer exists
         developer = db.execute(
@@ -134,16 +135,25 @@ async def receive_sync_data(sync_data: dict, db: Session = Depends(get_db)):
         if not developer:
             return {"error": "Invalid token"}
         
-        # Save activities
-        for activity in data:
+        developer_id = developer[0]
+        
+        # Save activity records
+        for event in data:
+            # Extract event details
+            duration = event.get("duration", 0)
+            event_data = json.dumps(event.get("data", {}))
+            event_timestamp = event.get("timestamp", timestamp)
+            
+            # Insert into database
             db.execute(text("""
-                INSERT INTO activity_records (developer_id, timestamp, duration, activity_data, created_at)
+                INSERT INTO activity_records 
+                (developer_id, timestamp, duration, activity_data, created_at)
                 VALUES (:dev_id, :timestamp, :duration, :data, NOW())
             """), {
-                "dev_id": developer[0],
-                "timestamp": activity.get("timestamp"),
-                "duration": activity.get("duration", 0),
-                "data": json.dumps(activity.get("data", {}))
+                "dev_id": developer_id,
+                "timestamp": event_timestamp,
+                "duration": duration,
+                "data": event_data
             })
         
         db.commit()
